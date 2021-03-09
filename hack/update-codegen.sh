@@ -21,6 +21,8 @@ set -o pipefail
 SCRIPT_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 echo "SCRIPT_ROOT $SCRIPT_ROOT"
 
+rm -rf  $(go env GOPATH)/src/github.com/d7561985/karness
+
 bash $(dirname "${BASH_SOURCE[0]}")/generate-groups.sh "deepcopy,client,informer,lister" \
   github.com/d7561985/karness/pkg/generated github.com/d7561985/karness/pkg/apis \
   karness:v1alpha1 \

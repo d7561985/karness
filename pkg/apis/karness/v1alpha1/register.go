@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"github.com/d7561985/karness/pkg/apis/karness"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -8,7 +9,7 @@ import (
 
 // Define your schema name and the version
 var SchemeGroupVersion = schema.GroupVersion{
-	Group:   "karness.k8s.io",
+	Group:   karness.GroupName,
 	Version: "v1alpha1",
 }
 
@@ -34,8 +35,10 @@ func Resource(resource string) schema.GroupResource {
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(
 		SchemeGroupVersion,
-		&HelloType{},
-		&HelloTypeList{},
+		&HostAliasType{},
+		&HostAliasTypeList{},
+		&ScenarioType{},
+		&ScenarioTypeList{},
 	)
 
 	scheme.AddKnownTypes(

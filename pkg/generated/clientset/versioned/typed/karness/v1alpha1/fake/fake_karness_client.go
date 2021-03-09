@@ -28,8 +28,12 @@ type FakeKarnessV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeKarnessV1alpha1) HelloTypes(namespace string) v1alpha1.HelloTypeInterface {
-	return &FakeHelloTypes{c, namespace}
+func (c *FakeKarnessV1alpha1) HostAliasTypes(namespace string) v1alpha1.HostAliasTypeInterface {
+	return &FakeHostAliasTypes{c, namespace}
+}
+
+func (c *FakeKarnessV1alpha1) ScenarioTypes(namespace string) v1alpha1.ScenarioTypeInterface {
+	return &FakeScenarioTypes{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

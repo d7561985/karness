@@ -32,59 +32,59 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// HelloTypeInformer provides access to a shared informer and lister for
-// HelloTypes.
-type HelloTypeInformer interface {
+// HostAliasTypeInformer provides access to a shared informer and lister for
+// HostAliasTypes.
+type HostAliasTypeInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.HelloTypeLister
+	Lister() v1alpha1.HostAliasTypeLister
 }
 
-type helloTypeInformer struct {
+type hostAliasTypeInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewHelloTypeInformer constructs a new informer for HelloType type.
+// NewHostAliasTypeInformer constructs a new informer for HostAliasType type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewHelloTypeInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredHelloTypeInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewHostAliasTypeInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredHostAliasTypeInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredHelloTypeInformer constructs a new informer for HelloType type.
+// NewFilteredHostAliasTypeInformer constructs a new informer for HostAliasType type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredHelloTypeInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredHostAliasTypeInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.KarnessV1alpha1().HelloTypes(namespace).List(context.TODO(), options)
+				return client.KarnessV1alpha1().HostAliasTypes(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.KarnessV1alpha1().HelloTypes(namespace).Watch(context.TODO(), options)
+				return client.KarnessV1alpha1().HostAliasTypes(namespace).Watch(context.TODO(), options)
 			},
 		},
-		&karnessv1alpha1.HelloType{},
+		&karnessv1alpha1.HostAliasType{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *helloTypeInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredHelloTypeInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *hostAliasTypeInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredHostAliasTypeInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *helloTypeInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&karnessv1alpha1.HelloType{}, f.defaultInformer)
+func (f *hostAliasTypeInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&karnessv1alpha1.HostAliasType{}, f.defaultInformer)
 }
 
-func (f *helloTypeInformer) Lister() v1alpha1.HelloTypeLister {
-	return v1alpha1.NewHelloTypeLister(f.Informer().GetIndexer())
+func (f *hostAliasTypeInformer) Lister() v1alpha1.HostAliasTypeLister {
+	return v1alpha1.NewHostAliasTypeLister(f.Informer().GetIndexer())
 }

@@ -18,10 +18,18 @@ limitations under the License.
 
 package v1alpha1
 
-// HelloTypeListerExpansion allows custom methods to be added to
-// HelloTypeLister.
-type HelloTypeListerExpansion interface{}
+// HostAliasTypeListerExpansion allows custom methods to be added to
+// HostAliasTypeLister.
+type HostAliasTypeListerExpansion interface{}
 
-// HelloTypeNamespaceListerExpansion allows custom methods to be added to
-// HelloTypeNamespaceLister.
-type HelloTypeNamespaceListerExpansion interface{}
+// HostAliasTypeNamespaceListerExpansion allows custom methods to be added to
+// HostAliasTypeNamespaceLister.
+type HostAliasTypeNamespaceListerExpansion interface{}
+
+// ScenarioTypeListerExpansion allows custom methods to be added to
+// ScenarioTypeLister.
+type ScenarioTypeListerExpansion interface{}
+
+// ScenarioTypeNamespaceListerExpansion allows custom methods to be added to
+// ScenarioTypeNamespaceLister.
+type ScenarioTypeNamespaceListerExpansion interface{}
