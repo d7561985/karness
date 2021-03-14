@@ -26,21 +26,16 @@ import (
 
 type KarnessV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	HostAliasTypesGetter
-	ScenarioTypesGetter
+	ScenariosGetter
 }
 
-// KarnessV1alpha1Client is used to interact with features provided by the karness.k8s.io group.
+// KarnessV1alpha1Client is used to interact with features provided by the karness.io group.
 type KarnessV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *KarnessV1alpha1Client) HostAliasTypes(namespace string) HostAliasTypeInterface {
-	return newHostAliasTypes(c, namespace)
-}
-
-func (c *KarnessV1alpha1Client) ScenarioTypes(namespace string) ScenarioTypeInterface {
-	return newScenarioTypes(c, namespace)
+func (c *KarnessV1alpha1Client) Scenarios(namespace string) ScenarioInterface {
+	return newScenarios(c, namespace)
 }
 
 // NewForConfig creates a new KarnessV1alpha1Client for the given config.

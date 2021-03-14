@@ -32,59 +32,59 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// HostAliasTypeInformer provides access to a shared informer and lister for
-// HostAliasTypes.
-type HostAliasTypeInformer interface {
+// ScenarioInformer provides access to a shared informer and lister for
+// Scenarios.
+type ScenarioInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.HostAliasTypeLister
+	Lister() v1alpha1.ScenarioLister
 }
 
-type hostAliasTypeInformer struct {
+type scenarioInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewHostAliasTypeInformer constructs a new informer for HostAliasType type.
+// NewScenarioInformer constructs a new informer for Scenario type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewHostAliasTypeInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredHostAliasTypeInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewScenarioInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredScenarioInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredHostAliasTypeInformer constructs a new informer for HostAliasType type.
+// NewFilteredScenarioInformer constructs a new informer for Scenario type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredHostAliasTypeInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredScenarioInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.KarnessV1alpha1().HostAliasTypes(namespace).List(context.TODO(), options)
+				return client.KarnessV1alpha1().Scenarios(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.KarnessV1alpha1().HostAliasTypes(namespace).Watch(context.TODO(), options)
+				return client.KarnessV1alpha1().Scenarios(namespace).Watch(context.TODO(), options)
 			},
 		},
-		&karnessv1alpha1.HostAliasType{},
+		&karnessv1alpha1.Scenario{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *hostAliasTypeInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredHostAliasTypeInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *scenarioInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredScenarioInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *hostAliasTypeInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&karnessv1alpha1.HostAliasType{}, f.defaultInformer)
+func (f *scenarioInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&karnessv1alpha1.Scenario{}, f.defaultInformer)
 }
 
-func (f *hostAliasTypeInformer) Lister() v1alpha1.HostAliasTypeLister {
-	return v1alpha1.NewHostAliasTypeLister(f.Informer().GetIndexer())
+func (f *scenarioInformer) Lister() v1alpha1.ScenarioLister {
+	return v1alpha1.NewScenarioLister(f.Informer().GetIndexer())
 }

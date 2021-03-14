@@ -24,10 +24,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// HostAliasTypes returns a HostAliasTypeInformer.
-	HostAliasTypes() HostAliasTypeInformer
-	// ScenarioTypes returns a ScenarioTypeInformer.
-	ScenarioTypes() ScenarioTypeInformer
+	// Scenarios returns a ScenarioInformer.
+	Scenarios() ScenarioInformer
 }
 
 type version struct {
@@ -41,12 +39,7 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// HostAliasTypes returns a HostAliasTypeInformer.
-func (v *version) HostAliasTypes() HostAliasTypeInformer {
-	return &hostAliasTypeInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// ScenarioTypes returns a ScenarioTypeInformer.
-func (v *version) ScenarioTypes() ScenarioTypeInformer {
-	return &scenarioTypeInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+// Scenarios returns a ScenarioInformer.
+func (v *version) Scenarios() ScenarioInformer {
+	return &scenarioInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

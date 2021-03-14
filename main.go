@@ -4,19 +4,26 @@ import (
 	"flag"
 	"time"
 
-	clientset "github.com/d7561985/karness/pkg/generated/clientset/versioned"
-	"github.com/d7561985/karness/pkg/generated/informers/externalversions"
-	"github.com/d7561985/karness/pkg/signals"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
+
+	"github.com/d7561985/karness/pkg/controller"
+	clientset "github.com/d7561985/karness/pkg/generated/clientset/versioned"
+	informers "github.com/d7561985/karness/pkg/generated/informers/externalversions"
+	"github.com/d7561985/karness/pkg/signals"
 )
 
 var (
 	masterURL  string
 	kubeconfig string
 )
+
+func init() {
+	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
+	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
+}
 
 func main() {
 	klog.InitFlags(nil)
@@ -35,14 +42,23 @@ func main() {
 		klog.Fatalf("Error building kubernetes clientset: %s", err.Error())
 	}
 
+	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
+
 	client, err := clientset.NewForConfig(cfg)
 	if err != nil {
 		klog.Fatalf("Error building example clientset: %s", err.Error())
 	}
 
-	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
-	exampleInformerFactory := externalversions.NewSharedInformerFactory(client, time.Second*30)
+	informerFactory := informers.NewSharedInformerFactory(client, time.Second*30)
+
+	c := controller.New(kubeClient, client,
+		kubeInformerFactory.Apps().V1().Deployments(),
+		informerFactory.Karness().V1alpha1().Scenarios())
 
 	kubeInformerFactory.Start(stopCh)
-	exampleInformerFactory.Start(stopCh)
+	informerFactory.Start(stopCh)
+
+	if err = c.Run(2, stopCh); err != nil {
+		klog.Fatalf("Error running controller: %s", err.Error())
+	}
 }

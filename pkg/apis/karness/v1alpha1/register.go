@@ -35,10 +35,8 @@ func Resource(resource string) schema.GroupResource {
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(
 		SchemeGroupVersion,
-		&HostAliasType{},
-		&HostAliasTypeList{},
-		&ScenarioType{},
-		&ScenarioTypeList{},
+		&Scenario{},
+		&ScenarioList{},
 	)
 
 	scheme.AddKnownTypes(

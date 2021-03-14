@@ -1,5 +1,5 @@
 // +k8s:deepcopy-gen=package
 // +k8s:defaulter-gen=TypeMeta
-// +groupName=karness.k8s.io
+// +groupName=karness.io
 
 package v1alpha1

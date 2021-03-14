@@ -1,0 +1,27 @@
+apiVersion: karness.io/v1alpha1
+kind: Scenario
+metadata:
+  name: example-foo
+spec:
+  name: "test karness"
+  description: "check functionality"
+  events:
+    -
+      name: grpc call
+      description: try to check field
+      action:
+        name: X
+        grpc:
+          addr: sportsbook-settings-sv.odds-compiler.svc.cluster.local:9000
+        body:
+          kv:
+            field_x: value_y
+      complete:
+        name: check field from response
+        condition:
+          - source:
+              kv:
+                field_match:
+                  - key: XXXX
+                    value: YYYY
+

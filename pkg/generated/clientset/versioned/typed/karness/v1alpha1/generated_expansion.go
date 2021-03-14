@@ -18,6 +18,4 @@ limitations under the License.
 
 package v1alpha1
 
-type HostAliasTypeExpansion interface{}
-
-type ScenarioTypeExpansion interface{}
+type ScenarioExpansion interface{}
