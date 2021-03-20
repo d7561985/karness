@@ -25,7 +25,7 @@ type ScenarioSpec struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 
-	Event []Event `json:"events"`
+	Events []Event `json:"events"`
 }
 
 // custom status

@@ -7,25 +7,19 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
 
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	appsinformers "k8s.io/client-go/informers/apps/v1"
-	kscheme "k8s.io/client-go/kubernetes/scheme"
-	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	appslisters "k8s.io/client-go/listers/apps/v1"
-
 	api "github.com/d7561985/karness/pkg/apis/karness/v1alpha1"
 	"github.com/d7561985/karness/pkg/generated/clientset/versioned"
 	"github.com/d7561985/karness/pkg/generated/clientset/versioned/scheme"
 	"github.com/d7561985/karness/pkg/generated/informers/externalversions/karness/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	kscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
 const controllerAgentName = "karness-controller"
@@ -46,19 +40,12 @@ const (
 )
 
 type service struct {
-	// kubeclientset is a standard kubernetes clientset
-	kubeclientset kubernetes.Interface
-
 	// sampleclientset is a clientset for our own API group
 	appClientSet versioned.Interface
 
 	// recorder is an event recorder for recording Event resources to the
 	// Kubernetes API.
 	recorder record.EventRecorder
-
-	depInformer       appsinformers.DeploymentInformer
-	deploymentsLister appslisters.DeploymentLister
-	deploymentsSynced cache.InformerSynced
 
 	scenarioInformer v1alpha1.ScenarioInformer
 	scenarioSynced   cache.InformerSynced
@@ -72,69 +59,37 @@ type service struct {
 }
 
 func New(
-	k *kubernetes.Clientset,
-	a *versioned.Clientset,
-	d appsinformers.DeploymentInformer,
-	s v1alpha1.ScenarioInformer) *service {
+	sClient versioned.Interface,
+	sInformer v1alpha1.ScenarioInformer) *service {
 
 	// Create event broadcaster
 	// Add sample-controller types to the default Kubernetes Scheme so Events can be
 	// logged for sample-controller types.
 	utilruntime.Must(scheme.AddToScheme(kscheme.Scheme))
 	klog.V(4).Info("Creating event broadcaster")
+
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartStructuredLogging(0)
-	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: k.CoreV1().Events("")})
+	//eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: k.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(kscheme.Scheme, corev1.EventSource{Component: controllerAgentName})
 
 	klog.Info("Setting up event handlers")
 
-	// Set up an event handler for when Deployment resources change. This
-	// handler will lookup the owner of the given Deployment, and if it is
-	// owned by a Foo resource will enqueue that Foo resource for
-	// processing. This way, we don't need to implement custom logic for
-	// handling Deployment resources. More info on this pattern:
-	// https://github.com/kubernetes/community/blob/8cafef897a22026d42f5e5bb3f104febe7e29830/contributors/devel/controllers.md
-	d.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			v := obj.(*appsv1.Deployment)
-			fmt.Println("add >>>>", v.Name)
-		},
-		UpdateFunc: func(old, new interface{}) {
-			newDepl := new.(*appsv1.Deployment)
-			oldDepl := old.(*appsv1.Deployment)
-			if newDepl.ResourceVersion == oldDepl.ResourceVersion {
-				// Periodic resync will send update events for all known Deployments.
-				// Two different versions of the same Deployment will always have different RVs.
-				return
-			}
-
-			fmt.Println("update >>>>1", newDepl.Name)
-		},
-		DeleteFunc: func(obj interface{}) {
-			fmt.Println("delete >>>>2")
-		},
-	})
-
 	x := &service{
-		kubeclientset:     k,
-		appClientSet:      a,
-		recorder:          recorder,
-		depInformer:       d,
-		deploymentsLister: d.Lister(),
-		deploymentsSynced: d.Informer().HasSynced,
-		scenarioInformer:  s,
-		scenarioSynced:    s.Informer().HasSynced,
-		workqueue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Scenarios"),
+		appClientSet:     sClient,
+		recorder:         recorder,
+		scenarioInformer: sInformer,
+		scenarioSynced:   sInformer.Informer().HasSynced,
+		workqueue:        workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Scenarios"),
 	}
 
-	s.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	x.scenarioInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: x.enqueueScenario,
 		UpdateFunc: func(oldObj, newObj interface{}) {
-
+			fmt.Println(">>>>update")
 		},
 		DeleteFunc: func(obj interface{}) {
-
+			fmt.Println(">>>>delete")
 		},
 	})
 
@@ -170,7 +125,7 @@ func (c *service) Run(threadiness int, stopCh <-chan struct{}) error {
 
 	// Wait for the caches to be synced before starting workers
 	klog.Info("Waiting for informer caches to sync")
-	if ok := cache.WaitForCacheSync(stopCh, c.deploymentsSynced, c.scenarioSynced); !ok {
+	if ok := cache.WaitForCacheSync(stopCh, c.scenarioSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
@@ -293,7 +248,7 @@ func (c *service) updateScenarioStatus(foo *api.Scenario) error {
 	// You can use DeepCopy() to make a deep copy of original object and modify this copy
 	// Or create a copy manually for better performance
 	fooCopy := foo.DeepCopy()
-	fooCopy.Status.Progress = fmt.Sprintf("%d of %d", 0, len(foo.Spec.Event))
+	fooCopy.Status.Progress = fmt.Sprintf("%d of %d", 0, len(foo.Spec.Events))
 	fooCopy.Status.State = "OK"
 	// If the CustomResourceSubresources feature gate is not enabled,
 	// If the CustomResourceSubresources feature gate is not enabled,
