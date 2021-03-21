@@ -5,6 +5,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type State string
+
+const (
+	Ready      State = "READY"
+	InProgress State = "IN_PROGRESS"
+	Complete   State = "COMPLETE"
+	Failed     State = "FAILED"
+)
+
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -31,7 +40,7 @@ type ScenarioSpec struct {
 // custom status
 type ScenarioStatus struct {
 	Progress string `json:"progress"`
-	State    string `json:"state"`
+	State    State  `json:"state"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -50,8 +59,8 @@ type Event struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 
-	Action   Action   `json:"action"`
-	Complete Complete `json:"complete"`
+	Action   Action     `json:"action"`
+	Complete Completion `json:"complete"`
 }
 
 type Action struct {
@@ -71,7 +80,7 @@ type Body struct {
 	String *string        `json:"string"`
 }
 
-type Complete struct {
+type Completion struct {
 	Name      string      `json:"name"`
 	Condition []Condition `json:"condition"`
 }

@@ -1,4 +1,4 @@
-package executor
+package grpcexec
 
 import (
 	"bytes"
@@ -26,9 +26,13 @@ import (
 // the response status codes emitted use an offest of 64
 const statusCodeOffset = 64
 
-const no_version = "dev build <no version set>"
+const noVersion = "dev build <no version set>"
 
-type GRPC struct {
+// Option dynamically change any internal requirements
+type Option func(*Config)
+
+// Config extend grpc client for enhance opt use Option which you should write inside this package ;)
+type Config struct {
 	connectTimeout float64
 	keepaliveTime  float64
 	maxMsgSz       int
@@ -50,20 +54,28 @@ type GRPC struct {
 	formatError bool
 }
 
-func NewGRPC() *GRPC {
-	return &GRPC{
+type service struct {
+	Config
+}
+
+func New(opt ...Option) *service {
+	g := &Config{
 		plaintext: true, insecure: true, version: "v1",
 		format:             grpcurl.FormatJSON,
 		formatError:        true,
 		allowUnknownFields: true,
 	}
+
+	for _, opt := range opt {
+		opt(g)
+	}
+
+	return &service{Config: *g}
 }
 
-// addr: sportsbook-settings-sv.odds-compiler.svc.cluster.local:9000
-// symbol: egt.oddscompiler.sportsbooksettings.v3.public.InfoService/GetEventInfo
-func (g *GRPC) Call(addr, symbol, body string) (codes.Code, []byte, error) {
-	ctx := context.Background()
-
+// @symbol: {package}.{service}/{rpc}
+// @request - json with request
+func (g *service) Call(ctx context.Context, addr string, symbol Path, request string) (codes.Code, []byte, error) {
 	cc, err := g.dial(ctx, addr)
 	if err != nil {
 		return 0, nil, fmt.Errorf("call error: %w", err)
@@ -92,7 +104,7 @@ func (g *GRPC) Call(addr, symbol, body string) (codes.Code, []byte, error) {
 		AllowUnknownFields:    g.allowUnknownFields,
 	}
 
-	in := bytes.NewBufferString(body)
+	in := bytes.NewBufferString(request)
 	rf, formatter, err := grpcurl.RequestParserAndFormatter(g.format, descSource, in, options)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to construct request parser and formatter for %q: %w", g.format, err)
@@ -106,7 +118,7 @@ func (g *GRPC) Call(addr, symbol, body string) (codes.Code, []byte, error) {
 		VerbosityLevel: g.verbosityLevel,
 	}
 
-	err = grpcurl.InvokeRPC(ctx, descSource, cc, symbol, nil, h, rf.Next)
+	err = grpcurl.InvokeRPC(ctx, descSource, cc, symbol.String(), nil, h, rf.Next)
 
 	if err != nil {
 		if errStatus, ok := status.FromError(err); ok && g.formatError {
@@ -143,7 +155,7 @@ func (g *GRPC) Call(addr, symbol, body string) (codes.Code, []byte, error) {
 	return h.Status.Code(), buf.Bytes(), nil
 }
 
-func (g *GRPC) dial(ctx context.Context, addr string) (*grpc.ClientConn, error) {
+func (g *Config) dial(ctx context.Context, addr string) (*grpc.ClientConn, error) {
 	dialTime := 10 * time.Second
 	if g.connectTimeout > 0 {
 		dialTime = time.Duration(g.connectTimeout * float64(time.Second))
@@ -198,7 +210,7 @@ func (g *GRPC) dial(ctx context.Context, addr string) (*grpc.ClientConn, error) 
 	}
 
 	grpcurlUA := "grpcurl/" + g.version
-	if g.version == no_version {
+	if g.version == noVersion {
 		grpcurlUA = "grpcurl/dev-build (no version set)"
 	}
 

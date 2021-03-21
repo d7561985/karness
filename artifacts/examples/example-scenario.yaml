@@ -13,6 +13,9 @@ spec:
         name: X
         grpc:
           addr: sportsbook-settings-sv.odds-compiler.svc.cluster.local:9000
+          package: egt.oddscompiler.sportsbooksettings.v3.public
+          service: InfoService
+          rpc: GetEventInfo
         body:
           kv:
             field_x: value_y

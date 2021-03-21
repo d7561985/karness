@@ -85,8 +85,15 @@ spec:
                                 type: string
                           grpc:
                             type: object
+                            required: ["addr", "package","service","rpc"]
                             properties:
                               addr:
+                                type: string
+                              package:
+                                type: string
+                              service:
+                                type: string
+                              rpc:
                                 type: string
                           http:
                             type: object

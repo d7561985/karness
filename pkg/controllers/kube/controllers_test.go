@@ -1,6 +1,7 @@
-package controller
+package kube
 
 import (
+	"context"
 	"reflect"
 	"testing"
 	"time"
@@ -52,14 +53,14 @@ func newEvent(name string, conditions ...v1alpha1.Condition) v1alpha1.Event {
 		Action: v1alpha1.Action{
 			Name: "action-" + name,
 		},
-		Complete: v1alpha1.Complete{
+		Complete: v1alpha1.Completion{
 			Name:      "complete-" + name,
 			Condition: conditions,
 		},
 	}
 }
 
-func newScenario(name string, events ...v1alpha1.Event) *v1alpha1.Scenario {
+func newScenario(name string, state v1alpha1.State, progres string, events ...v1alpha1.Event) *v1alpha1.Scenario {
 	return &v1alpha1.Scenario{
 		TypeMeta: v1.TypeMeta{APIVersion: v1alpha1.SchemeGroupVersion.String()},
 		ObjectMeta: v1.ObjectMeta{
@@ -68,6 +69,10 @@ func newScenario(name string, events ...v1alpha1.Event) *v1alpha1.Scenario {
 		},
 		Spec: v1alpha1.ScenarioSpec{
 			Events: events,
+		},
+		Status: v1alpha1.ScenarioStatus{
+			Progress: progres,
+			State:    state,
 		},
 	}
 }
@@ -86,11 +91,11 @@ func (f *fixture) newController() (*service, informers.SharedInformerFactory) {
 	return c, i
 }
 
-func (f *fixture) run(scenarioName string) {
-	f.runController(scenarioName, true, false)
+func (f *fixture) run(scenarioName string, steps int) {
+	f.runController(scenarioName, true, steps, false)
 }
 
-func (f *fixture) runController(scenarioName string, startInformers bool, expectError bool) {
+func (f *fixture) runController(key string, startInformers bool, steps int, expectError bool) {
 	c, i := f.newController()
 	if startInformers {
 		stopCh := make(chan struct{})
@@ -99,11 +104,23 @@ func (f *fixture) runController(scenarioName string, startInformers bool, expect
 	}
 
 	// skip worker process
-	err := c.syncHandler(scenarioName)
+	err := c.syncHandler(context.Background(), key)
 	if !expectError && err != nil {
 		f.t.Errorf("error syncing foo: %v", err)
 	} else if expectError && err == nil {
 		f.t.Error("expected error syncing foo, got nil")
+	}
+
+	if steps > 0 {
+		s, ok := c.harness.GetProcessor(key)
+		if !ok {
+			f.t.Errorf("processor can't extract")
+			return
+		}
+
+		for i := 0; i < steps; i++ {
+			s.(interface{ Step() bool }).Step()
+		}
 	}
 
 	actions := filterInformerActions(f.client.Actions())
@@ -190,12 +207,14 @@ func checkAction(expected, actual core.Action, t *testing.T) {
 	}
 }
 
-func (f *fixture) expectUpdateFooStatusAction(foo *v1alpha1.Scenario) {
-	a := core.NewUpdateAction(schema.GroupVersionResource{Resource: "scenarios"}, foo.Namespace, foo)
-	// TODO: Until #38113 is merged, we can't use Subresource
-	a.Subresource = "status"
+func (f *fixture) expectUpdateFooStatusAction(items ...*v1alpha1.Scenario) {
+	for _, item := range items {
+		a := core.NewUpdateAction(schema.GroupVersionResource{Resource: "scenarios"}, item.Namespace, item)
+		// TODO: Until #38113 is merged, we can't use Subresource
+		a.Subresource = "status"
 
-	f.actions = append(f.actions, a)
+		f.actions = append(f.actions, a)
+	}
 }
 
 func getKey(foo *v1alpha1.Scenario, t *testing.T) string {
@@ -212,15 +231,41 @@ func TestDoNothing(t *testing.T) {
 	f := newFixture(t)
 
 	// scenario which exist in store right now
-	scena := newScenario("test")
+	scena := newScenario("test", "", "")
 	f.scenarioList = append(f.scenarioList, scena)
 	f.objects = append(f.objects, scena)
 
 	// create update action + desired scena update
-	sRes := *scena
-	sRes.Status.State = "OK"
-	sRes.Status.Progress = "0 of 0"
+	f.expectUpdateFooStatusAction(
+		newScenario("test", v1alpha1.Ready, "0 of 0"),
+	)
 
-	f.expectUpdateFooStatusAction(&sRes)
-	f.run(getKey(&sRes, t))
+	f.run(getKey(scena, t), 0)
+}
+
+func TestDoNothingStartProcessor(t *testing.T) {
+	f := newFixture(t)
+
+	e := newEvent("grpc",
+		v1alpha1.Condition{Source: &v1alpha1.ConditionSource{
+			KV: &v1alpha1.KV{
+				Field: []v1alpha1.KVFieldMatch{{
+					Key:   "X",
+					Value: "Y",
+				}},
+			},
+		}})
+
+	// scenario which exist in store right now
+	scena := newScenario("test", "", "", e)
+	f.scenarioList = append(f.scenarioList, scena)
+	f.objects = append(f.objects, scena)
+
+	// create update action + desired scena update
+	f.expectUpdateFooStatusAction(
+		newScenario("test", v1alpha1.Ready, "0 of 1", e),
+		newScenario("test", v1alpha1.Complete, "1 of 1", e),
+	)
+
+	f.run(getKey(scena, t), 1)
 }

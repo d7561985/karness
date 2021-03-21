@@ -4,10 +4,10 @@ import (
 	"flag"
 	"time"
 
+	"github.com/d7561985/karness/pkg/controllers/kube"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 
-	"github.com/d7561985/karness/pkg/controller"
 	clientset "github.com/d7561985/karness/pkg/generated/clientset/versioned"
 	informers "github.com/d7561985/karness/pkg/generated/informers/externalversions"
 	"github.com/d7561985/karness/pkg/signals"
@@ -42,12 +42,12 @@ func main() {
 
 	informerFactory := informers.NewSharedInformerFactory(client, time.Second*30)
 
-	c := controller.New(client,
+	c := kube.New(client,
 		informerFactory.Karness().V1alpha1().Scenarios())
 
 	informerFactory.Start(stopCh)
 
 	if err = c.Run(2, stopCh); err != nil {
-		klog.Fatalf("Error running controller: %s", err.Error())
+		klog.Fatalf("Error running controllers: %s", err.Error())
 	}
 }

@@ -1,4 +1,4 @@
-package executor
+package grpcexec
 
 import (
 	"context"
@@ -73,11 +73,15 @@ func TestGRPC(t *testing.T) {
 	defer l.Close()
 	defer srv.Stop()
 
-	const symbol = "helloworld.Greeter/SayHello"
+	g := New()
 
-	g := NewGRPC()
+	path := Path{
+		Package: "helloworld",
+		Service: "Greeter",
+		RPC:     "SayHello",
+	}
 
-	c, body, err := g.Call(l.Addr().String(), symbol, fmt.Sprintf(`{"name":"%s"}`, name))
+	c, body, err := g.Call(context.Background(), l.Addr().String(), path, fmt.Sprintf(`{"name":"%s"}`, name))
 	assert.NoError(t, err)
 	assert.Equal(t, codes.OK, c)
 
