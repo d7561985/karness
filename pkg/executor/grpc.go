@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os"
 	"time"
 
 	"github.com/jhump/protoreflect/grpcreflect"
@@ -54,19 +53,20 @@ type GRPC struct {
 func NewGRPC() *GRPC {
 	return &GRPC{
 		plaintext: true, insecure: true, version: "v1",
-		format:      grpcurl.FormatJSON,
-		formatError: true,
+		format:             grpcurl.FormatJSON,
+		formatError:        true,
+		allowUnknownFields: true,
 	}
 }
 
 // addr: sportsbook-settings-sv.odds-compiler.svc.cluster.local:9000
 // symbol: egt.oddscompiler.sportsbooksettings.v3.public.InfoService/GetEventInfo
-func (g *GRPC) Go(addr, symbol string, body string) error {
+func (g *GRPC) Call(addr, symbol, body string) (codes.Code, []byte, error) {
 	ctx := context.Background()
 
 	cc, err := g.dial(ctx, addr)
 	if err != nil {
-		return fmt.Errorf("call error: %w", err)
+		return 0, nil, fmt.Errorf("call error: %w", err)
 	}
 
 	md := grpcurl.MetadataFromHeaders(nil)
@@ -95,30 +95,35 @@ func (g *GRPC) Go(addr, symbol string, body string) error {
 	in := bytes.NewBufferString(body)
 	rf, formatter, err := grpcurl.RequestParserAndFormatter(g.format, descSource, in, options)
 	if err != nil {
-		return fmt.Errorf("failed to construct request parser and formatter for %q: %w", g.format, err)
+		return 0, nil, fmt.Errorf("failed to construct request parser and formatter for %q: %w", g.format, err)
 	}
 
+	buf := bytes.NewBuffer(nil)
+
 	h := &grpcurl.DefaultEventHandler{
-		Out:            os.Stdout,
+		Out:            buf,
 		Formatter:      formatter,
 		VerbosityLevel: g.verbosityLevel,
 	}
 
 	err = grpcurl.InvokeRPC(ctx, descSource, cc, symbol, nil, h, rf.Next)
+
 	if err != nil {
 		if errStatus, ok := status.FromError(err); ok && g.formatError {
 			h.Status = errStatus
 		} else {
-			return fmt.Errorf("error invoking method %q: %w", symbol, err)
+			return 0, nil, fmt.Errorf("error invoking method %q: %w", symbol, err)
 		}
 	}
 
 	reqSuffix := ""
 	respSuffix := ""
 	reqCount := rf.NumRequests()
+
 	if reqCount != 1 {
 		reqSuffix = "s"
 	}
+
 	if h.NumResponses != 1 {
 		respSuffix = "s"
 	}
@@ -129,15 +134,13 @@ func (g *GRPC) Go(addr, symbol string, body string) error {
 
 	if h.Status.Code() != codes.OK {
 		if g.formatError {
-			printFormattedStatus(os.Stderr, h.Status, formatter)
+			printFormattedStatus(buf, h.Status, formatter)
 		} else {
-			grpcurl.PrintStatus(os.Stderr, h.Status, formatter)
+			grpcurl.PrintStatus(buf, h.Status, formatter)
 		}
-
-		os.Exit(statusCodeOffset + int(h.Status.Code()))
 	}
 
-	return nil
+	return h.Status.Code(), buf.Bytes(), nil
 }
 
 func (g *GRPC) dial(ctx context.Context, addr string) (*grpc.ClientConn, error) {
@@ -157,12 +160,15 @@ func (g *GRPC) dial(ctx context.Context, addr string) (*grpc.ClientConn, error) 
 			Timeout: timeout,
 		}))
 	}
+
 	if g.maxMsgSz > 0 {
 		opts = append(opts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(g.maxMsgSz)))
 	}
+
 	var creds credentials.TransportCredentials
 	if !g.plaintext {
 		var err error
+
 		creds, err = grpcurl.ClientTransportCredentials(g.insecure, g.cacert, g.cert, g.key)
 		if err != nil {
 			return nil, fmt.Errorf("failed to configure transport credentials: %w", err)
@@ -176,6 +182,7 @@ func (g *GRPC) dial(ctx context.Context, addr string) (*grpc.ClientConn, error) 
 				return nil, fmt.Errorf("cannot specify different values for -servername and -authority")
 			}
 		}
+
 		overrideName := g.serverName
 		if overrideName == "" {
 			overrideName = g.authority
@@ -217,8 +224,8 @@ func (g *GRPC) dial(ctx context.Context, addr string) (*grpc.ClientConn, error) 
 func printFormattedStatus(w io.Writer, stat *status.Status, formatter grpcurl.Formatter) {
 	formattedStatus, err := formatter(stat.Proto())
 	if err != nil {
-		fmt.Fprintf(w, "ERROR: %v", err.Error())
+		_, _ = fmt.Fprintf(w, "ERROR: %v", err.Error())
 	}
 
-	fmt.Fprint(w, formattedStatus)
+	_, _ = fmt.Fprint(w, formattedStatus)
 }

@@ -9,8 +9,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	pb "google.golang.org/grpc/examples/helloworld/helloworld"
 	"google.golang.org/grpc/reflection"
+	"k8s.io/apimachinery/pkg/util/json"
 )
 
 type fixture struct {
@@ -52,9 +54,13 @@ func createServer(fx fixture) (net.Listener, *grpc.Server) {
 	return l, s
 }
 
-// TestGRPC shows all flow about server requests
+// TestGRPC shows ˚all flow about server requests
 func TestGRPC(t *testing.T) {
 	name := "TEST_NAME"
+
+	desire := map[string]string{
+		"message": "OK",
+	}
 
 	l, srv := createServer(fixture{
 		err: nil,
@@ -67,13 +73,16 @@ func TestGRPC(t *testing.T) {
 	defer l.Close()
 	defer srv.Stop()
 
-	fmt.Println(l.Addr().String())
-
 	const symbol = "helloworld.Greeter/SayHello"
 
 	g := NewGRPC()
 
-	err := g.Go(l.Addr().String(), symbol, fmt.Sprintf(`{"name":"%s"}`, name))
-
+	c, body, err := g.Call(l.Addr().String(), symbol, fmt.Sprintf(`{"name":"%s"}`, name))
 	assert.NoError(t, err)
+	assert.Equal(t, codes.OK, c)
+
+	out := make(map[string]string)
+	assert.NoError(t, json.Unmarshal(body, &out))
+
+	assert.Equal(t, desire, out)
 }
