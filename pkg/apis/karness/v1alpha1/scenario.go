@@ -66,8 +66,8 @@ type Event struct {
 type Action struct {
 	Name string `json:"name"`
 
-	GRPC action.GRPC `json:"grpc"`
-	HTTP action.HTTP `json:"http"`
+	GRPC *action.GRPC `json:"grpc"`
+	HTTP *action.HTTP `json:"http"`
 
 	Body Body `json:"body"`
 }
@@ -87,13 +87,14 @@ type Completion struct {
 
 // Condition of complete show reason
 type Condition struct {
-	// Source of condition check
-	Source *ConditionSource `json:"source"`
+	// Response of condition check
+	Response *ConditionResponse `json:"response"`
 }
 
-// ConditionSource contains competition condition for source
-type ConditionSource struct {
-	KV *KV `json:"kv"`
+// ConditionResponse contains competition condition for source
+type ConditionResponse struct {
+	Status string `json:"status"`
+	Body   Body   `json:"body"`
 }
 
 type KV struct {

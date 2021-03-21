@@ -47,12 +47,10 @@ func newFixture(t *testing.T) *fixture {
 	return f
 }
 
-func newEvent(name string, conditions ...v1alpha1.Condition) v1alpha1.Event {
+func newEvent(name string, action v1alpha1.Action, conditions ...v1alpha1.Condition) v1alpha1.Event {
 	return v1alpha1.Event{
-		Name: "event-" + name,
-		Action: v1alpha1.Action{
-			Name: "action-" + name,
-		},
+		Name:   "event-" + name,
+		Action: action,
 		Complete: v1alpha1.Completion{
 			Name:      "complete-" + name,
 			Condition: conditions,
@@ -119,7 +117,9 @@ func (f *fixture) runController(key string, startInformers bool, steps int, expe
 		}
 
 		for i := 0; i < steps; i++ {
-			s.(interface{ Step() bool }).Step()
+			s.(interface {
+				Step(ctx context.Context) bool
+			}).Step(context.Background())
 		}
 	}
 
@@ -247,14 +247,23 @@ func TestDoNothingStartProcessor(t *testing.T) {
 	f := newFixture(t)
 
 	e := newEvent("grpc",
-		v1alpha1.Condition{Source: &v1alpha1.ConditionSource{
-			KV: &v1alpha1.KV{
-				Field: []v1alpha1.KVFieldMatch{{
-					Key:   "X",
-					Value: "Y",
-				}},
+		v1alpha1.Action{
+			Body: v1alpha1.Body{
+				KV: map[string]v1alpha1.Any{
+					"X": "Q",
+				},
 			},
-		}})
+		},
+		v1alpha1.Condition{
+			Response: &v1alpha1.ConditionResponse{
+				Body: v1alpha1.Body{
+					//KV: map[string]v1alpha1.Any{
+					//	"X": "Y",
+					//},
+				},
+			},
+		},
+	)
 
 	// scenario which exist in store right now
 	scena := newScenario("test", "", "", e)

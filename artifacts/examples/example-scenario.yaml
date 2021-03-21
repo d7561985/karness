@@ -22,9 +22,8 @@ spec:
       complete:
         name: check field from response
         condition:
-          - source:
-              kv:
-                field_match:
-                  - key: XXXX
-                    value: YYYY
+          - response:
+              body:
+                kv:
+                  XXXX: YYYY
 

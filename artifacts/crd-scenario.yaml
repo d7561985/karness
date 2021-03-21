@@ -113,28 +113,24 @@ spec:
                               type: object
                               description: Condition of complete show reason
                               properties:
-                                source:
+                                response:
                                   description: ConditionSource contains competition condition for source
                                   type: object
                                   properties:
-                                    kv:
-                                      description: describe rules for kv source
+                                    status:
+                                      type: string
+                                    body:
                                       type: object
                                       properties:
-                                        field_match:
-                                          description: KVFieldMatch check if source contains key with specified value
-                                          type: array
-                                          items:
-                                            type: object
-                                            required: ["key", "value"]
-                                            properties:
-                                              key:
-                                                type: string
-                                              value:
-                                                x-kubernetes-int-or-string: true
-                                                anyof:
-                                                  - type: integer
-                                                  - type: string
+                                        kv:
+                                          x-kubernetes-preserve-unknown-fields: true
+                                          description: "represent JSON"
+                                          type: object
+                                        byte:
+                                          type: string
+                                          description: "contains base64 bytes value"
+                                        string:
+                                          type: string
 
 
 
