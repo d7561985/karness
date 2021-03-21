@@ -6,6 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/d7561985/karness/pkg/apis/karness/v1alpha1/models/action"
+	"github.com/d7561985/karness/pkg/executor/grpcexec"
+	"google.golang.org/grpc/codes"
+	pb "google.golang.org/grpc/examples/helloworld/helloworld"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/client-go/tools/cache"
@@ -277,4 +281,64 @@ func TestDoNothingStartProcessor(t *testing.T) {
 	)
 
 	f.run(getKey(scena, t), 1)
+}
+
+func TestGRPCCall(t *testing.T) {
+	const responseMSG = "OK"
+	var expect = `{
+  "message": "OK"
+}
+`
+	l, srv := grpcexec.CreateMockServer(grpcexec.Fixture{
+		Res: &pb.HelloReply{Message: responseMSG},
+		CB:  func(req *pb.HelloRequest) {},
+	})
+
+	defer l.Close()
+	defer srv.Stop()
+
+	f := newFixture(t)
+
+	e := newEvent("grpc",
+		v1alpha1.Action{
+			Name: "Grpc-Test",
+			GRPC: &action.GRPC{
+				Addr:    l.Addr().String(),
+				Package: "helloworld",
+				Service: "Greeter",
+				RPC:     "SayHello",
+			},
+
+			Body: v1alpha1.Body{
+				KV: map[string]v1alpha1.Any{
+					"name": "hello",
+				},
+			},
+		},
+		v1alpha1.Condition{
+			Response: &v1alpha1.ConditionResponse{
+				Status: codes.OK.String(),
+				Body: v1alpha1.Body{
+					KV: map[string]v1alpha1.Any{
+						"message": responseMSG,
+					},
+					String: &expect,
+					Byte:   []byte(expect),
+				},
+			},
+		},
+	)
+
+	scena := newScenario("test", "", "", e)
+	f.scenarioList = append(f.scenarioList, scena)
+	f.objects = append(f.objects, scena)
+
+	// create update action + desired scena update
+	f.expectUpdateFooStatusAction(
+		newScenario("test", v1alpha1.Ready, "0 of 1", e),
+		newScenario("test", v1alpha1.Complete, "1 of 1", e),
+	)
+
+	f.run(getKey(scena, t), 1)
+
 }

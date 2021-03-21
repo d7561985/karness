@@ -202,7 +202,7 @@ func (g *Config) dial(ctx context.Context, addr string) (*grpc.ClientConn, error
 
 		if overrideName != "" {
 			if err := creds.OverrideServerName(overrideName); err != nil {
-				return nil, fmt.Errorf("failed to override server name as %q: %w", overrideName, err)
+				return nil, fmt.Errorf("failed to override MockServer name as %q: %w", overrideName, err)
 			}
 		}
 	} else if g.authority != "" {
