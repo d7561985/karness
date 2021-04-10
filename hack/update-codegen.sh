@@ -20,8 +20,13 @@ set -o pipefail
 
 SCRIPT_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 echo "SCRIPT_ROOT $SCRIPT_ROOT"
-pwd
+
+rm -rf  $(go env GOPATH)/src/github.com/d7561985/karness
+
 bash $(dirname "${BASH_SOURCE[0]}")/generate-groups.sh "deepcopy,client,informer,lister" \
   github.com/d7561985/karness/pkg/generated github.com/d7561985/karness/pkg/apis \
-  samplecontroller:v1alpha1 \
+  karness:v1alpha1 \
   --go-header-file "${SCRIPT_ROOT}"/hack/boilerplate.go.txt
+#  --output-base "$(dirname "${BASH_SOURCE[0]}")/.." \
+
+cp -R $(go env GOPATH)/src/github.com/d7561985/karness/pkg/ $SCRIPT_ROOT/pkg/
