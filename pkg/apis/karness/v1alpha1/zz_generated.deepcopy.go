@@ -39,6 +39,13 @@ func (in *Action) DeepCopyInto(out *Action) {
 		**out = **in
 	}
 	in.Body.DeepCopyInto(&out.Body)
+	if in.BindResult != nil {
+		in, out := &in.BindResult, &out.BindResult
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	return
 }
 
@@ -67,8 +74,8 @@ func (in *Body) DeepCopyInto(out *Body) {
 		*out = make([]byte, len(*in))
 		copy(*out, *in)
 	}
-	if in.String != nil {
-		in, out := &in.String, &out.String
+	if in.JSON != nil {
+		in, out := &in.JSON, &out.JSON
 		*out = new(string)
 		**out = **in
 	}
@@ -270,6 +277,13 @@ func (in *ScenarioSpec) DeepCopyInto(out *ScenarioSpec) {
 		*out = make([]Event, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.Variables != nil {
+		in, out := &in.Variables, &out.Variables
+		*out = make(map[string]Any, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
 		}
 	}
 	return

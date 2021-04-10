@@ -53,6 +53,10 @@ spec:
                   type: string
                 description:
                   type: string
+                variables:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                  description: "global variables which could be used in Body replacing placeholders"
                 events:
                   type: array
                   items:
@@ -71,6 +75,10 @@ spec:
                         properties:
                           name:
                             type: string
+                          bind_result:
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                            description: "Key - global variable, value - json path, result of which would be saved as global variable"
                           body:
                             type: object
                             properties:
@@ -81,7 +89,7 @@ spec:
                               byte:
                                 type: string
                                 description: "contains base64 bytes value"
-                              string:
+                              json:
                                 type: string
                           grpc:
                             type: object
@@ -129,7 +137,7 @@ spec:
                                         byte:
                                           type: string
                                           description: "contains base64 bytes value"
-                                        string:
+                                        json:
                                           type: string
 
 

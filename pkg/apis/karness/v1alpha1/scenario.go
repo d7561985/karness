@@ -17,7 +17,7 @@ const (
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// HostAlias is a top-level type
+// Scenario HostAlias is a top-level type
 type Scenario struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional
@@ -29,15 +29,16 @@ type Scenario struct {
 	Spec ScenarioSpec `json:"spec"`
 }
 
-// custom spec
+// ScenarioSpec custom spec
 type ScenarioSpec struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 
-	Events []Event `json:"events"`
+	Events    []Event        `json:"events"`
+	Variables map[string]Any `json:"variables"`
 }
 
-// custom status
+// ScenarioStatus custom status
 type ScenarioStatus struct {
 	Progress string `json:"progress"`
 	State    State  `json:"state"`
@@ -70,14 +71,21 @@ type Action struct {
 	HTTP *action.HTTP `json:"http"`
 
 	Body Body `json:"body"`
+
+	// BindResult save result KV representation in global variable storage
+	// This works only when result returns as JSON or maybe anything marshalable
+	// Right now only JSON supposed to be
+	// Key: result_key
+	// Val: variable name for binding
+	BindResult map[string]string `json:"bind_result"`
 }
 
 type Any string
 
 type Body struct {
-	KV     map[string]Any `json:"kv"`
-	Byte   []byte         `json:"byte"`
-	String *string        `json:"string"`
+	KV   map[string]Any `json:"kv"`
+	Byte []byte         `json:"byte"`
+	JSON *string        `json:"json"`
 }
 
 type Completion struct {

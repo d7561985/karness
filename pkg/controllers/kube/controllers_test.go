@@ -62,7 +62,8 @@ func newEvent(name string, action v1alpha1.Action, conditions ...v1alpha1.Condit
 	}
 }
 
-func newScenario(name string, state v1alpha1.State, progres string, events ...v1alpha1.Event) *v1alpha1.Scenario {
+func newScenario(
+	name string, state v1alpha1.State, progres string, vars map[string]v1alpha1.Any, events ...v1alpha1.Event) *v1alpha1.Scenario {
 	return &v1alpha1.Scenario{
 		TypeMeta: v1.TypeMeta{APIVersion: v1alpha1.SchemeGroupVersion.String()},
 		ObjectMeta: v1.ObjectMeta{
@@ -70,7 +71,8 @@ func newScenario(name string, state v1alpha1.State, progres string, events ...v1
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: v1alpha1.ScenarioSpec{
-			Events: events,
+			Events:    events,
+			Variables: vars,
 		},
 		Status: v1alpha1.ScenarioStatus{
 			Progress: progres,
@@ -235,13 +237,13 @@ func TestDoNothing(t *testing.T) {
 	f := newFixture(t)
 
 	// scenario which exist in store right now
-	scena := newScenario("test", "", "")
+	scena := newScenario("test", "", "", nil)
 	f.scenarioList = append(f.scenarioList, scena)
 	f.objects = append(f.objects, scena)
 
 	// create update action + desired scena update
 	f.expectUpdateFooStatusAction(
-		newScenario("test", v1alpha1.Ready, "0 of 0"),
+		newScenario("test", v1alpha1.Ready, "0 of 0", nil),
 	)
 
 	f.run(getKey(scena, t), 0)
@@ -270,14 +272,14 @@ func TestDoNothingStartProcessor(t *testing.T) {
 	)
 
 	// scenario which exist in store right now
-	scena := newScenario("test", "", "", e)
+	scena := newScenario("test", "", "", nil, e)
 	f.scenarioList = append(f.scenarioList, scena)
 	f.objects = append(f.objects, scena)
 
 	// create update action + desired scena update
 	f.expectUpdateFooStatusAction(
-		newScenario("test", v1alpha1.Ready, "0 of 1", e),
-		newScenario("test", v1alpha1.Complete, "1 of 1", e),
+		newScenario("test", v1alpha1.Ready, "0 of 1", nil, e),
+		newScenario("test", v1alpha1.Complete, "1 of 1", nil, e),
 	)
 
 	f.run(getKey(scena, t), 1)
@@ -314,6 +316,7 @@ func TestGRPCCall(t *testing.T) {
 					"name": "hello",
 				},
 			},
+			BindResult: map[string]string{"MSG": `{.message}`},
 		},
 		v1alpha1.Condition{
 			Response: &v1alpha1.ConditionResponse{
@@ -322,23 +325,22 @@ func TestGRPCCall(t *testing.T) {
 					KV: map[string]v1alpha1.Any{
 						"message": responseMSG,
 					},
-					String: &expect,
-					Byte:   []byte(expect),
+					JSON: &expect,
+					Byte: []byte(expect),
 				},
 			},
 		},
 	)
 
-	scena := newScenario("test", "", "", e)
+	scena := newScenario("test", "", "", nil, e)
 	f.scenarioList = append(f.scenarioList, scena)
 	f.objects = append(f.objects, scena)
 
 	// create update action + desired scena update
 	f.expectUpdateFooStatusAction(
-		newScenario("test", v1alpha1.Ready, "0 of 1", e),
-		newScenario("test", v1alpha1.Complete, "1 of 1", e),
+		newScenario("test", v1alpha1.Ready, "0 of 1", nil, e),
+		newScenario("test", v1alpha1.Complete, "1 of 1", nil, e),
 	)
 
 	f.run(getKey(scena, t), 1)
-
 }

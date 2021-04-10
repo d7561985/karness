@@ -1,5 +1,7 @@
 # karness
 
+https://drive.google.com/file/d/1j8H1Pk63lUd4tcCukLWgyFd5kdJRlWgs/view?usp=sharing
+
 k8s harness tests framework
 
 Golang code-generators used to implement [Kubernetes-style API types](https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md).

@@ -7,7 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// Define your schema name and the version
+// SchemeGroupVersion Define your schema name and the version
 var SchemeGroupVersion = schema.GroupVersion{
 	Group:   karness.GroupName,
 	Version: "v1alpha1",
