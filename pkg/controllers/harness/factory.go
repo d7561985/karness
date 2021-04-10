@@ -32,8 +32,6 @@ func (h *Harness) Factory(root context.Context, c controllers.Kube, key string, 
 	default:
 		panic(fmt.Errorf("upredictable object: %v[%[1]T]", item))
 	}
-
-	return nil
 }
 
 func (h *Harness) GetProcessor(key string) (interface{}, bool) {

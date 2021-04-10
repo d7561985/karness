@@ -25,7 +25,7 @@ func (r ResCheck) Is(status string, res []byte) bool {
 	}
 
 	if len(r.Body.Byte) > 0 {
-		return bytes.Compare(r.Body.Byte, res) == 0
+		return bytes.Equal(r.Body.Byte, res)
 	}
 
 	if len(r.Body.KV) > 0 {

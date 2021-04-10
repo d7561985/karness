@@ -21,11 +21,6 @@ import (
 	reflectpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 )
 
-// To avoid confusion between program error codes and the gRPC resonse
-// status codes 'Cancelled' and 'Unknown', 1 and 2 respectively,
-// the response status codes emitted use an offest of 64
-const statusCodeOffset = 64
-
 const noVersion = "dev build <no version set>"
 
 // Option dynamically change any internal requirements
@@ -64,6 +59,8 @@ func New(opt ...Option) *service {
 		format:             grpcurl.FormatJSON,
 		formatError:        true,
 		allowUnknownFields: true,
+		verbosityLevel:     0,
+		emitDefaults:       false,
 	}
 
 	for _, opt := range opt {
