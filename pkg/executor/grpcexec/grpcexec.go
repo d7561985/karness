@@ -70,9 +70,10 @@ func New(opt ...Option) *service {
 	return &service{Config: *g}
 }
 
+// Call ...
 // @symbol: {package}.{service}/{rpc}
 // @request - json with request
-func (g *service) Call(ctx context.Context, addr string, symbol Path, request string) (codes.Code, []byte, error) {
+func (g *service) Call(ctx context.Context, addr string, symbol Path, request []byte) (codes.Code, []byte, error) {
 	cc, err := g.dial(ctx, addr)
 	if err != nil {
 		return 0, nil, fmt.Errorf("call error: %w", err)
@@ -101,7 +102,7 @@ func (g *service) Call(ctx context.Context, addr string, symbol Path, request st
 		AllowUnknownFields:    g.allowUnknownFields,
 	}
 
-	in := bytes.NewBufferString(request)
+	in := bytes.NewBuffer(request)
 	rf, formatter, err := grpcurl.RequestParserAndFormatter(g.format, descSource, in, options)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to construct request parser and formatter for %q: %w", g.format, err)

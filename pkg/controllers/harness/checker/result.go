@@ -3,40 +3,43 @@ package checker
 import (
 	"bytes"
 	"fmt"
-	"reflect"
+	"github.com/d7561985/karness/pkg/controllers/harness/models"
+	"sync"
 
 	"github.com/d7561985/karness/pkg/apis/karness/v1alpha1"
-	"k8s.io/apimachinery/pkg/util/json"
-	"k8s.io/klog/v2"
 )
 
-type ResCheck v1alpha1.ConditionResponse
+type ResCheckInterface interface {
+	Is(status string, res []byte) error
+}
 
-func (r ResCheck) Is(status string, res []byte) bool {
-	if r.Status != "" {
-		if r.Status != status {
-			fmt.Println(">>1")
-			return false
+type rs struct {
+	store     *sync.Map
+	condition *v1alpha1.ConditionResponse
+}
+
+func ResCheck(store *sync.Map, condition *v1alpha1.ConditionResponse) ResCheckInterface {
+	return &rs{
+		store:     store,
+		condition: condition,
+	}
+}
+
+func (r *rs) Is(status string, resBody []byte) error {
+	if r.condition.Status != "" {
+		if r.condition.Status != status {
+			return fmt.Errorf("bad status %q expect %q", status, r.condition.Status)
 		}
 	}
 
-	if r.Body.JSON != nil {
-		return *r.Body.JSON == string(res)
+	body, err := models.Body(&r.condition.Body).GetBody(r.store)
+	if err != nil {
+		return fmt.Errorf("get condition body %w", err)
 	}
 
-	if len(r.Body.Byte) > 0 {
-		return bytes.Equal(r.Body.Byte, res)
+	if bytes.Equal(body, resBody) {
+		return nil
 	}
 
-	if len(r.Body.KV) > 0 {
-		m := make(map[string]v1alpha1.Any)
-		if err := json.Unmarshal(res, &m); err != nil {
-			klog.Errorf("result (%s) cant' unmarshal to map", string(res))
-			return false
-		}
-
-		return reflect.DeepEqual(r.Body.KV, m)
-	}
-
-	return true
+	return fmt.Errorf("condition %q not equal result %q", string(body), string(resBody))
 }

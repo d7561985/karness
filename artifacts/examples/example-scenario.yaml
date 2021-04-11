@@ -5,6 +5,8 @@ metadata:
 spec:
   name: "test karness"
   description: "check functionality"
+  variables:
+    XXX_KEY: YYY_VALUE
   events:
     -
       name: grpc call
@@ -16,6 +18,8 @@ spec:
           package: egt.oddscompiler.sportsbooksettings.v3.public
           service: InfoService
           rpc: GetEventInfo
+        bind_result:
+          VAR_NAME: {{.gotemplate[0].field}}
         body:
           kv:
             field_x: value_y

@@ -74,11 +74,6 @@ func (in *Body) DeepCopyInto(out *Body) {
 		*out = make([]byte, len(*in))
 		copy(*out, *in)
 	}
-	if in.JSON != nil {
-		in, out := &in.JSON, &out.JSON
-		*out = new(string)
-		**out = **in
-	}
 	return
 }
 

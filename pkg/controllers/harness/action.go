@@ -9,8 +9,8 @@ import (
 	"k8s.io/client-go/util/jsonpath"
 )
 
-type Action interface {
-	Call(ctx context.Context) (*ActionResult, error)
+type ActionInterface interface {
+	Call(ctx context.Context, body []byte) (*ActionResult, error)
 }
 
 var (

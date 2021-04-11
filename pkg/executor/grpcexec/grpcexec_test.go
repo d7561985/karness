@@ -38,7 +38,7 @@ func TestGRPC(t *testing.T) {
 		RPC:     "SayHello",
 	}
 
-	c, body, err := g.Call(context.Background(), l.Addr().String(), path, fmt.Sprintf(`{"name":"%s"}`, name))
+	c, body, err := g.Call(context.Background(), l.Addr().String(), path, []byte(fmt.Sprintf(`{"name":"%s"}`, name)))
 	assert.NoError(t, err)
 	assert.Equal(t, codes.OK, c)
 

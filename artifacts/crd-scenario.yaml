@@ -18,12 +18,17 @@ spec:
             type: string
           state:
             type: string
+          message:
+            type: string
       additionalPrinterColumns:
         - jsonPath: .status.progress
           name: Progress
           type: string
         - jsonPath: .status.state
           name: Status
+          type: string
+        - jsonPath: .status.message
+          name: Message
           type: string
       schema:
         openAPIV3Schema:
@@ -81,6 +86,7 @@ spec:
                             description: "Key - global variable, value - json path, result of which would be saved as global variable"
                           body:
                             type: object
+                            description: gotemplate syndax are used to fill global variables
                             properties:
                               kv:
                                 x-kubernetes-preserve-unknown-fields: true
@@ -129,6 +135,7 @@ spec:
                                       type: string
                                     body:
                                       type: object
+                                      description: gotemplate syndax are used to fill global variables
                                       properties:
                                         kv:
                                           x-kubernetes-preserve-unknown-fields: true

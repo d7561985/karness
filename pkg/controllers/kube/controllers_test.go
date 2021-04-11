@@ -2,6 +2,7 @@ package kube
 
 import (
 	"context"
+	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
 	"time"
@@ -175,7 +176,7 @@ func checkAction(expected, actual core.Action, t *testing.T) {
 	}
 
 	if reflect.TypeOf(actual) != reflect.TypeOf(expected) {
-		t.Errorf("Action has wrong type. Expected: %t. Got: %t", expected, actual)
+		t.Errorf("action has wrong type. Expected: %t. Got: %t", expected, actual)
 		return
 	}
 
@@ -186,7 +187,7 @@ func checkAction(expected, actual core.Action, t *testing.T) {
 		object := a.GetObject()
 
 		if !reflect.DeepEqual(expObject, object) {
-			t.Errorf("Action %s %s has wrong object\nDiff:\n %s",
+			t.Errorf("action %s %s has wrong object\nDiff:\n %s",
 				a.GetVerb(), a.GetResource().Resource, diff.ObjectGoPrintSideBySide(expObject, object))
 		}
 	case core.UpdateActionImpl:
@@ -195,7 +196,7 @@ func checkAction(expected, actual core.Action, t *testing.T) {
 		object := a.GetObject()
 
 		if !reflect.DeepEqual(expObject, object) {
-			t.Errorf("Action %s %s has wrong object\nDiff:\n %s",
+			t.Errorf("action %s %s has wrong object\nDiff:\n %s",
 				a.GetVerb(), a.GetResource().Resource, diff.ObjectGoPrintSideBySide(expObject, object))
 		}
 	case core.PatchActionImpl:
@@ -204,11 +205,11 @@ func checkAction(expected, actual core.Action, t *testing.T) {
 		patch := a.GetPatch()
 
 		if !reflect.DeepEqual(expPatch, patch) {
-			t.Errorf("Action %s %s has wrong patch\nDiff:\n %s",
+			t.Errorf("action %s %s has wrong patch\nDiff:\n %s",
 				a.GetVerb(), a.GetResource().Resource, diff.ObjectGoPrintSideBySide(expPatch, patch))
 		}
 	default:
-		t.Errorf("Uncaptured Action %s %s, you should explicitly add a case to capture it",
+		t.Errorf("Uncaptured action %s %s, you should explicitly add a case to capture it",
 			actual.GetVerb(), actual.GetResource().Resource)
 	}
 }
@@ -285,22 +286,27 @@ func TestDoNothingStartProcessor(t *testing.T) {
 	f.run(getKey(scena, t), 1)
 }
 
+// check scenario sending GRPC call via reflection with body
+// check send body via json + condition via JSON
 func TestGRPCCall(t *testing.T) {
 	const responseMSG = "OK"
 	var expect = `{
   "message": "OK"
 }
 `
+	const helloName = "HI"
+
 	l, srv := grpcexec.CreateMockServer(grpcexec.Fixture{
 		Res: &pb.HelloReply{Message: responseMSG},
-		CB:  func(req *pb.HelloRequest) {},
+		CB: func(req *pb.HelloRequest) {
+			assert.Equal(t, helloName, req.Name)
+		},
 	})
 
 	defer l.Close()
 	defer srv.Stop()
 
 	f := newFixture(t)
-
 	e := newEvent("grpc",
 		v1alpha1.Action{
 			Name: "Grpc-Test",
@@ -310,12 +316,11 @@ func TestGRPCCall(t *testing.T) {
 				Service: "Greeter",
 				RPC:     "SayHello",
 			},
-
 			Body: v1alpha1.Body{
-				KV: map[string]v1alpha1.Any{
-					"name": "hello",
-				},
+				// check var binding
+				JSON: `{"name" : "{{.HELLO}}"}`,
 			},
+			// will be error if was not able to bind, so this is ok
 			BindResult: map[string]string{"MSG": `{.message}`},
 		},
 		v1alpha1.Condition{
@@ -325,21 +330,23 @@ func TestGRPCCall(t *testing.T) {
 					KV: map[string]v1alpha1.Any{
 						"message": responseMSG,
 					},
-					JSON: &expect,
+					JSON: expect,
 					Byte: []byte(expect),
 				},
 			},
 		},
 	)
 
-	scena := newScenario("test", "", "", nil, e)
+	// prebind var binding for use key as replacer of placeholders
+	vars := map[string]v1alpha1.Any{"HELLO": helloName}
+	scena := newScenario("test", "", "", vars, e)
 	f.scenarioList = append(f.scenarioList, scena)
 	f.objects = append(f.objects, scena)
 
 	// create update action + desired scena update
 	f.expectUpdateFooStatusAction(
-		newScenario("test", v1alpha1.Ready, "0 of 1", nil, e),
-		newScenario("test", v1alpha1.Complete, "1 of 1", nil, e),
+		newScenario("test", v1alpha1.Ready, "0 of 1", vars, e),
+		newScenario("test", v1alpha1.Complete, "1 of 1", vars, e),
 	)
 
 	f.run(getKey(scena, t), 1)

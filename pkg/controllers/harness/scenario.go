@@ -3,6 +3,7 @@ package harness
 import (
 	"context"
 	"fmt"
+	"github.com/d7561985/karness/pkg/controllers/harness/models"
 	"sync"
 	"time"
 
@@ -59,8 +60,10 @@ func (s *scenarioProcessor) Step(ctx context.Context) bool {
 		}
 	}()
 
-	if !s.process(ctx, s.entity.Spec.Events[s.current]) {
+	if err := s.process(ctx, s.entity.Spec.Events[s.current]); err != nil {
+		klog.Errorf("process error: %s", err.Error())
 		s.entity.Status.State = v1alpha1.Failed
+		s.entity.Status.Message = err.Error()
 		// exit on fail
 		return true
 	}
@@ -73,21 +76,25 @@ func (s *scenarioProcessor) Step(ctx context.Context) bool {
 	return false
 }
 
-func (s *scenarioProcessor) process(ctx context.Context, event v1alpha1.Event) bool {
-	res, err := s.action(ctx, event.Action)
+func (s *scenarioProcessor) process(ctx context.Context, event v1alpha1.Event) error {
+	res, err := s.action(ctx, models.NewAction(event.Action))
 	if err != nil {
-		// ToDo: write error
-		return true
+		return fmt.Errorf("action %w", err)
 	}
 
 	return s.checkComplete(event.Complete.Condition, res)
 }
 
-func (s *scenarioProcessor) action(ctx context.Context, a v1alpha1.Action) (res *ActionResult, err error) {
+func (s *scenarioProcessor) action(ctx context.Context, a *models.Action) (res *ActionResult, err error) {
 	res = OK()
 
+	resp, err := a.GetBody(&s.store)
+	if err != nil {
+		return nil, err
+	}
+
 	if a.GRPC != nil {
-		res, err = NewGRPC(a).Call(ctx)
+		res, err = NewGRPC(a).Call(ctx, resp)
 		if err != nil {
 			klog.Errorf("scenario progress with action %q grpc call error %w", a.Name, err)
 			// ok=true:  we want to try again
@@ -107,18 +114,18 @@ func (s *scenarioProcessor) action(ctx context.Context, a v1alpha1.Action) (res 
 	return res, nil
 }
 
-func (s *scenarioProcessor) checkComplete(c []v1alpha1.Condition, result *ActionResult) bool {
+func (s *scenarioProcessor) checkComplete(c []v1alpha1.Condition, result *ActionResult) error {
 	for _, condition := range c {
 		if condition.Response != nil {
-			if !checker.ResCheck(*condition.Response).Is(result.Code, result.Body) {
-
-				return false
+			if err := checker.ResCheck(&s.store, condition.Response).
+				Is(result.Code, result.Body); err != nil {
+				return err
 			}
 		}
 	}
 
 	s.current++
-	return true
+	return nil
 }
 
 func sFmt(start, end int) string {

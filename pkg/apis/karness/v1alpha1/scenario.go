@@ -42,6 +42,7 @@ type ScenarioSpec struct {
 type ScenarioStatus struct {
 	Progress string `json:"progress"`
 	State    State  `json:"state"`
+	Message  string `json:"message"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -85,7 +86,7 @@ type Any string
 type Body struct {
 	KV   map[string]Any `json:"kv"`
 	Byte []byte         `json:"byte"`
-	JSON *string        `json:"json"`
+	JSON string         `json:"json"`
 }
 
 type Completion struct {
